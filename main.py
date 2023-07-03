@@ -135,11 +135,11 @@ def processUserInputs():
         delta_x = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_L) else -delta_scale
         translation_matrix = rl.matrix_translate(delta_x, 0, 0)
 
-        print(f"{translation_matrix.m0}, {translation_matrix.m1}, {translation_matrix.m2}, {translation_matrix.m3}")
-        print(f"{translation_matrix.m4}, {translation_matrix.m5}, {translation_matrix.m6}, {translation_matrix.m7}")
-        print(f"{translation_matrix.m8}, {translation_matrix.m9}, {translation_matrix.m10}, {translation_matrix.m11}")
-        print(f"{translation_matrix.m12}, {translation_matrix.m13}, {translation_matrix.m14}, {translation_matrix.m15}")
-        print("\n")
+        # print(f"{translation_matrix.m0}, {translation_matrix.m1}, {translation_matrix.m2}, {translation_matrix.m3}")
+        # print(f"{translation_matrix.m4}, {translation_matrix.m5}, {translation_matrix.m6}, {translation_matrix.m7}")
+        # print(f"{translation_matrix.m8}, {translation_matrix.m9}, {translation_matrix.m10}, {translation_matrix.m11}")
+        # # print(f"{translation_matrix.m12}, {translation_matrix.m13}, {translation_matrix.m14}, {translation_matrix.m15}")
+        # print("\n")
         rl.Matrix()
         for idx, pos in enumerate(m_positions):
             m_positions[idx] = rl.vector3_transform(pos, translation_matrix)
@@ -150,31 +150,30 @@ def processUserInputs():
             m_positions[idx] = rl.vector3_transform(pos, translation_matrix)
 
 
-# q = rl.quaternion_from_vector3_to_vector3(m_positions[0], m_positions[2])
-# q = rl.quaternion_from_euler(deg2rad(45), deg2rad(45), 0)
-# m = rl.Matrix()
-# rl.quaternion_normalize(q)
-# m = rl.quaternion_to_matrix(q)
-
-# m_positions[0]= rl.vector3_transform(m_positions[0], m)
-
-# print(f"{q.w}, {q.x}, {q.y}, {q.z}")
-# m.m3 = 0
-# print(f"{m.m0}, {m.m1}, {m.m2}, {m.m3}, \n {m.m4}, {m.m5}, {m.m6}, {m.m7}, \n {m.m8}, {m.m9}, {m.m10}, {m.m11}, \n {m.m12}, {m.m13}, {m.m14}, {m.m15}")
 orientation_marker_pos = []
 orientation_marker_pos.append(m_positions[3])
 orientation_marker_pos.append(rl.vector3_subtract(s_positions[3], rl.Vector3(3,0,0)))
 orientation_marker_pos.append(rl.vector3_add(s_positions[3], rl.Vector3(3,0,0)))
 
-rotation_angles = [0, 0, 0] # x, y, z
-dummy = rl.Vector3(5,5,5)
+# quaternion debug
+dummy = rl.Vector3(0, 10, 0)
+rotation_axis = [1, 0, 0]
+q_angle = 22.5
+qx = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+
+rotation_axis = [0, 1, 0]
+q_angle = 45
+qy = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+
+q_combined = rl.quaternion_multiply(qy, qx)
+dummy = rl.vector3_rotate_by_quaternion(dummy, q_combined)
+
 
 
 while not rl.window_should_close():
     """
         INPUT HANDLING AND MATH FOR LOOP
     """
-
     # make it interactive (demo simulation)
     processUserInputs()
     # getInputs()
@@ -189,34 +188,15 @@ while not rl.window_should_close():
     rl.begin_drawing()
     rl.clear_background(rl.BLACK)
     rl.begin_mode_3d(camera)
-    
-    if(rl.is_key_down(rl.KeyboardKey.KEY_X)):
-        rotation_angles[0] = rotation_angles[0] + 0.001
-        q = rl.quaternion_from_axis_angle(rl.Vector3(1, 0, 0), 0.1)
-        rl.wait_time(0.1)
-    if(rl.is_key_down(rl.KeyboardKey.KEY_Z)):
-        q = rl.quaternion_from_axis_angle(rl.Vector3(0, 1, 0), 0.1)
-        rl.wait_time(0.1)
-    if(rl.is_key_down(rl.KeyboardKey.KEY_C)):
-        q = rl.quaternion_from_axis_angle(rl.Vector3(0, 0, 1), 0.1)
-        rl.wait_time(0.1)
-    if(rl.is_key_down(rl.KeyboardKey.KEY_V)):
-        for i in range(3):
-            rotation_angles[i] = 0
-            dummy = rl.Vector3(5,5,5)
 
 
-    # q = rl.quaternion_from_axis_angle(rl.Vector3(rotation_angles[0], rotation_angles[1], rotation_angles[2]), 0.1)
-    print(f"{q.w}, {q.x}, {q.y}, {q.z}")
-    dummy = rl.vector3_rotate_by_quaternion(dummy, q)
     rl.draw_line_3d(rl.Vector3(0,0,0), dummy, rl.PURPLE)
 
     
     # draw geometry
     rl.draw_circle_3d(rl.Vector3(0,0,0), s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-    rl.draw_circle_3d(rl.Vector3(0,0,0), m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)#
+    rl.draw_circle_3d(rl.Vector3(0,0,0), m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
     rl.draw_triangle_3d(orientation_marker_pos[0], orientation_marker_pos[1], orientation_marker_pos[2], rl.WHITE)
-
 
     # draw sensor positions
     for pos in s_positions:
