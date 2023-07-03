@@ -36,7 +36,7 @@ def calc_normal_vector_4points(a1, a2, b1, b2):
     b_dir = rl.vector3_subtract(b2, b1)
 
     # calc normal vector
-    normal_vector = rl.vector3_cross_product(b_dir, a_dir)
+    normal_vector = rl.vector3_scale(rl.vector3_cross_product(b_dir, a_dir), -1)
     return normal_vector
 
 def calc_normal_vector(points):
@@ -49,7 +49,7 @@ rl.set_target_fps(60)
 
 # camera
 camera = rl.Camera3D()
-camera.position = rl.Vector3(0, 100, 100)
+camera.position = rl.Vector3(0, 20, 100)
 camera.target = rl.Vector3(0, 0, 0)
 camera.up = rl.Vector3(0, 1, 0)
 camera.fovy = 45.0
@@ -63,7 +63,7 @@ m_circle_radius = s_circle_radius + 2*offset_s_m
 s_positions = []
 m_positions = []
 for i in range(4):
-    angle = i*deg2rad(90)
+    angle = i*deg2rad(-90)
     x = math.cos(angle)
     z = math.sin(angle)
     s_positions.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), s_circle_radius))
@@ -153,21 +153,23 @@ def getInputs():
     inputs = []
     while True:
         if ser.in_waiting > 0:
-            sensor_data = ser.readline().decode().rstrip().split(";")
-            sensor_data.pop()
+            try:
+                sensor_data = ser.readline().decode().rstrip().split(";")
+                sensor_data.pop()
 
-            sensor_data = [float(value) for value in sensor_data]
-            print(sensor_data)
+                sensor_data = [float(value) for value in sensor_data]
+                print(sensor_data)
 
-            # for idx, pos in enumerate(m_positions):
-            #     m_positions[idx] = rl.vector3_add(s_positions[idx], rl.Vector3(sensor_data[idx], sensor_data[idx+1], sensor_data[idx+2]))
-            #     print(m_positions[idx])
+                # for idx, pos in enumerate(m_positions):
+                #     m_positions[idx] = rl.vector3_add(s_positions[idx], rl.Vector3(sensor_data[idx], sensor_data[idx+1], sensor_data[idx+2]))
+                #     print(m_positions[idx])
 
-            m_positions[0] = rl.vector3_add(s_positions[0], rl.Vector3(sensor_data[0], sensor_data[1], sensor_data[2])) # swap nothing
-            m_positions[1] = rl.vector3_add(s_positions[1], rl.Vector3(sensor_data[5], sensor_data[4], sensor_data[3])) # swap x and z
-            m_positions[2] = rl.vector3_add(s_positions[2], rl.Vector3(-sensor_data[6], sensor_data[7], -sensor_data[8])) # negate x and z
-            m_positions[3] = rl.vector3_add(s_positions[3], rl.Vector3(-sensor_data[11], sensor_data[10], -sensor_data[9])) # flip and negate x and z
-
+                m_positions[0] = rl.vector3_add(s_positions[0], rl.Vector3(sensor_data[0], sensor_data[2], sensor_data[1])) # swap nothing
+                m_positions[1] = rl.vector3_add(s_positions[1], rl.Vector3(sensor_data[4], sensor_data[5], sensor_data[3])) # swap x and z
+                m_positions[2] = rl.vector3_add(s_positions[2], rl.Vector3(-sensor_data[6], sensor_data[8], -sensor_data[7])) # negate x and z
+                m_positions[3] = rl.vector3_add(s_positions[3], rl.Vector3(-sensor_data[10], sensor_data[11], -sensor_data[9])) # flip and negate x and z
+            except:
+                pass
             # m_positions[1] = rl.vector3_add(s_positions[1], )
           
             # for idx, pos in enumerate(m_positions):
@@ -175,7 +177,7 @@ def getInputs():
             #     print(f"m{idx}({m_positions[idx].x}, {m_positions[idx].y}, {m_positions[idx].z})")
             #     pass
 
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
         
 
