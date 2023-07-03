@@ -2,18 +2,9 @@ import pyray as rl
 import math
 import numpy as np
 
-# from simulation import *
-
-# helper functions
-def lerp (a, b, t):
-    return (1 - t) * a + b * t
-
-def invLerp(a,b,v):
-    return (v - a) / (b - a)
-
-def remap(iMin, iMax, oMin, oMax, v):
-    t = invLerp(iMin, iMax, v)
-    return lerp(oMin, oMax, t)
+import serial
+import threading
+import time
 
 def deg2rad(deg):
     return deg * (math.pi/180)
@@ -26,19 +17,14 @@ def find_intersection_4points(a1, a2, b1, b2):
     # calc cross product of both direction vectors
     n = rl.vector3_cross_product(a_dir, b_dir)
 
-    # calc d = n*(r1-r2)/ abs(n)
-    # d = rl.vector3_multiply(n, rl.vector3_subtract(a1, b1))
-    # d = rl.vector3_scale(d, 1/rl.vector3_length(n))
-    # print(f"closest distance - x:{d.x}, y:{d.y}, z:{d.z}")
-
     # find points 
     t1 = rl.vector_3dot_product(rl.vector3_cross_product(b_dir, n), rl.vector3_subtract(b1, a1)) /  rl.vector_3dot_product(n, n)
     t2 = rl.vector_3dot_product(rl.vector3_cross_product(a_dir, n), rl.vector3_subtract(b1, a1)) / rl.vector_3dot_product(n, n)
 
+    # calc intersections
     points = []
     points.append(rl.vector3_add(a1, rl.vector3_scale(a_dir, t1)))
     points.append(rl.vector3_add(b1, rl.vector3_scale(b_dir, t1)))
-
     return points
 
 def find_intersection(points):
@@ -83,6 +69,8 @@ for i in range(4):
     s_positions.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), s_circle_radius))
     m_positions.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), m_circle_radius))
 
+
+
 delta_scale = 0.5
 
 def processUserInputs():
@@ -103,10 +91,9 @@ def processUserInputs():
     if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) or rl.is_key_down(rl.KeyboardKey.KEY_RIGHT):
         delta = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) else -delta_scale
         rotation_matrix = rl.matrix_rotate_z(deg2rad(delta))
-   
         for idx, pos in enumerate(m_positions):
             m_positions[idx] = rl.vector3_transform(pos, rotation_matrix)
-       
+
     if rl.is_key_down(rl.KeyboardKey.KEY_UP) or rl.is_key_down(rl.KeyboardKey.KEY_DOWN):
         delta = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_DOWN) else -delta_scale
         rotation_matrix = rl.matrix_rotate_x(deg2rad(delta))
@@ -134,13 +121,6 @@ def processUserInputs():
     if rl.is_key_down(rl.KeyboardKey.KEY_J) or rl.is_key_down(rl.KeyboardKey.KEY_L):
         delta_x = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_L) else -delta_scale
         translation_matrix = rl.matrix_translate(delta_x, 0, 0)
-
-        # print(f"{translation_matrix.m0}, {translation_matrix.m1}, {translation_matrix.m2}, {translation_matrix.m3}")
-        # print(f"{translation_matrix.m4}, {translation_matrix.m5}, {translation_matrix.m6}, {translation_matrix.m7}")
-        # print(f"{translation_matrix.m8}, {translation_matrix.m9}, {translation_matrix.m10}, {translation_matrix.m11}")
-        # # print(f"{translation_matrix.m12}, {translation_matrix.m13}, {translation_matrix.m14}, {translation_matrix.m15}")
-        # print("\n")
-        rl.Matrix()
         for idx, pos in enumerate(m_positions):
             m_positions[idx] = rl.vector3_transform(pos, translation_matrix)
     elif rl.is_key_down(rl.KeyboardKey.KEY_I) or rl.is_key_down(rl.KeyboardKey.KEY_K):
@@ -156,19 +136,52 @@ orientation_marker_pos.append(rl.vector3_subtract(s_positions[3], rl.Vector3(3,0
 orientation_marker_pos.append(rl.vector3_add(s_positions[3], rl.Vector3(3,0,0)))
 
 # quaternion debug
-dummy = rl.Vector3(0, 10, 0)
-rotation_axis = [1, 0, 0]
-q_angle = 22.5
-qx = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+# dummy = rl.Vector3(0, 10, 0)
+# rotation_axis = [1, 0, 0]
+# q_angle = 22.5
+# qx = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
 
-rotation_axis = [0, 1, 0]
-q_angle = 45
-qy = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+# rotation_axis = [0, 1, 0]
+# q_angle = 45
+# qy = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
 
-q_combined = rl.quaternion_multiply(qy, qx)
-dummy = rl.vector3_rotate_by_quaternion(dummy, q_combined)
+# q_combined = rl.quaternion_multiply(qy, qx)
+# dummy = rl.vector3_rotate_by_quaternion(dummy, q_combined)
 
 
+def getInputs():
+    inputs = []
+    while True:
+        if ser.in_waiting > 0:
+            sensor_data = ser.readline().decode().rstrip().split(";")
+            sensor_data.pop()
+
+            sensor_data = [float(value) for value in sensor_data]
+            print(sensor_data)
+
+            # for idx, pos in enumerate(m_positions):
+            #     m_positions[idx] = rl.vector3_add(s_positions[idx], rl.Vector3(sensor_data[idx], sensor_data[idx+1], sensor_data[idx+2]))
+            #     print(m_positions[idx])
+
+            m_positions[0] = rl.vector3_add(s_positions[0], rl.Vector3(sensor_data[0], sensor_data[1], sensor_data[2])) # swap nothing
+            m_positions[1] = rl.vector3_add(s_positions[1], rl.Vector3(sensor_data[5], sensor_data[4], sensor_data[3])) # swap x and z
+            m_positions[2] = rl.vector3_add(s_positions[2], rl.Vector3(-sensor_data[6], sensor_data[7], -sensor_data[8])) # negate x and z
+            m_positions[3] = rl.vector3_add(s_positions[3], rl.Vector3(-sensor_data[11], sensor_data[10], -sensor_data[9])) # flip and negate x and z
+
+            # m_positions[1] = rl.vector3_add(s_positions[1], )
+          
+            # for idx, pos in enumerate(m_positions):
+            #     m_positions[idx] = rl.vector3_add(pos, rl.Vector3(sensor_data[idx+0], sensor_data[idx+1], sensor_data[idx+2]))
+            #     print(f"m{idx}({m_positions[idx].x}, {m_positions[idx].y}, {m_positions[idx].z})")
+            #     pass
+
+        time.sleep(0.1)
+
+        
+
+ser = serial.Serial('COM7', 115200)
+thread = threading.Thread(target=getInputs, daemon=True)
+thread.start()
 
 while not rl.window_should_close():
     """
@@ -190,7 +203,7 @@ while not rl.window_should_close():
     rl.begin_mode_3d(camera)
 
 
-    rl.draw_line_3d(rl.Vector3(0,0,0), dummy, rl.PURPLE)
+    # rl.draw_line_3d(rl.Vector3(0,0,0), dummy, rl.PURPLE)
 
     
     # draw geometry
@@ -201,6 +214,8 @@ while not rl.window_should_close():
     # draw sensor positions
     for pos in s_positions:
         rl.draw_sphere(pos, 0.75, rl.RED)
+
+    # rl.draw_circle_3d(m_positions[2], 3, rl.Vector3(0,0,0), 0, rl.PURPLE)
 
     # draw magnet positions and vectors
     for pos in m_positions:
@@ -218,6 +233,8 @@ while not rl.window_should_close():
     rl.end_drawing()
 
     camera_scale = 1
+
+# thread.join()
 
 rl.close_window()
 
