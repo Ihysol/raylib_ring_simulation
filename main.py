@@ -61,7 +61,7 @@ def processUserInputs():
             angle = idx*deg2rad(-90)
             ring.m_pos[idx] = rl.vector3_scale(rl.vector3_normalize(rl.Vector3(math.cos(angle), 0, math.sin(angle))), ring.m_circle_radius)
 
-    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt, PG_DOWN/PG_UP: rotate", 10, 10, 10, rl.BEIGE)
+    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt, PG_DOWN/PG_UP: rotate, TAB: snapshot", 10, 10, 10, rl.BEIGE)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_J) or rl.is_key_down(rl.KeyboardKey.KEY_L):
         delta_x = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_L) else -delta_scale
@@ -74,29 +74,20 @@ def processUserInputs():
         for idx, pos in enumerate(ring.m_pos):
             ring.m_pos[idx] = rl.vector3_transform(pos, translation_matrix)
 
+    if rl.is_key_down(rl.KeyboardKey.KEY_TAB):
+        print(f"{ring.v_normal_snapshot.x}, {ring.v_normal_snapshot.y}, {ring.v_normal_snapshot.z}")
+        ring.snapshot()
+
 def draw_orientation_marker():
     orientation_marker_pos = [ring.m_pos[3], rl.vector3_subtract(ring.s_pos[3], rl.Vector3(3,0,0)), rl.vector3_add(ring.s_pos[3], rl.Vector3(3,0,0))]
     rl.draw_triangle_3d(orientation_marker_pos[2], orientation_marker_pos[1], orientation_marker_pos[1], rl.WHITE)
 
-def draw_sensor_positions():
-    for pos in ring.s_pos:
-        rl.draw_sphere(pos, 0.75, rl.RED)
-
-def draw_magnet_positions():
-    for pos in ring.m_pos:
-        rl.draw_sphere(pos, 0.75, rl.GREEN)
-
-def draw_magnet_vectors():
-    rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
-    rl.draw_line_3d(ring.m_pos[1], ring.m_pos[3], rl.BLUE)
-
-def draw_circles():
-    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-
-def draw_geometry():
-    draw_circles()             # draw base circles
-    draw_orientation_marker()   # buggy atm
+def draw_snapshot_data():
+    rl.draw_line_3d(ring.m_pos_snapshot[0], ring.m_pos_snapshot[2], rl.GRAY)     
+    rl.draw_line_3d(ring.m_pos_snapshot[1], ring.m_pos_snapshot[3], rl.GRAY) 
+    rl.draw_line_3d(ring.intersections[0], ring.v_normal_snapshot, rl.DARKPURPLE)    
+    for pos in ring.m_pos_snapshot:
+        rl.draw_sphere(pos, 0.75, rl.DARKGRAY) 
 
 def getInputs():
     inputs = []
@@ -136,15 +127,31 @@ while not rl.window_should_close():
     rl.clear_background(rl.BLACK)
     rl.begin_mode_3d(camera)
    
-    draw_geometry()             # draw base circles and orientation marker
-    draw_sensor_positions()     # draw fixed sensor positions
-    draw_magnet_positions()     # draw magnet positions
-    draw_magnet_vectors()       # draw magnet vectors
+    # draw base circles
+    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
+    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
+
+    # orientation marker
+    draw_orientation_marker()   # buggy atm 
+
+    # draw fixed sensor positions                      
+    for pos in ring.s_pos:                  
+        rl.draw_sphere(pos, 0.75, rl.RED)     
+    
+    # draw magnet positions
+    for pos in ring.m_pos:
+        rl.draw_sphere(pos, 0.75, rl.GREEN)     
+    # draw magnet vectors
+    rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
+    rl.draw_line_3d(ring.m_pos[1], ring.m_pos[3], rl.BLUE) 
 
     # draw intersection point
     rl.draw_sphere(ring.intersections[0], 0.5, rl.RED)
     # draw normal vector from intersection
     rl.draw_line_3d(ring.intersections[0], ring.v_normal, rl.RED)
+
+    # draw snapshot vector data
+    draw_snapshot_data() 
 
     rl.end_mode_3d()
     rl.end_drawing()

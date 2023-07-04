@@ -1,6 +1,7 @@
 import pyray as rl
 import math
 from utils import *
+import copy
 
 class RingSystem:
     def __init__(self, s_circle_radius = 42.5, offset_s_m=3):
@@ -16,11 +17,11 @@ class RingSystem:
         self.rotation = [0, 0, 0]
         
         # permanent snapshot values
-        self.s_pos = []                                 # sensor position 
-        self.m_pos_snapshot = []                        # first magnet position for calibration
-        self.v_normal_snapshot = self.v_normal          # snapshot for normal vector
-        self.dir_vectors_snapshot = self.dir_vectors    # snapshot for dir vectors
-        self.rotation_snapshot = self.rotation          # snapshot for rotation
+        self.s_pos = []                                                     # sensor position 
+        self.m_pos_snapshot = [rl.vector3_zero() for i in range(4)]         # first magnet position for calibration
+        self.v_normal_snapshot = rl.vector3_zero()                           # snapshot for normal vector
+        self.dir_vectors_snapshot = [rl.vector3_zero() for i in range(2)]   # snapshot for dir vectors
+        self.rotation_snapshot = rl.vector3_zero()                          # snapshot for rotation
 
         # calc initial sensor/ magnet positions positions
         for i in range(4):
@@ -29,6 +30,8 @@ class RingSystem:
             z = math.sin(angle)
             self.s_pos.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), self.s_circle_radius))
             self.m_pos.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), self.m_circle_radius))
+        
+        # self.m_pos_snapshot = self.m_pos
 
     def calc_dir_vectors(self):
         # calc direction vectors
@@ -57,7 +60,7 @@ class RingSystem:
     
     def calc_rotation(self):
         test = rl.vector_3dot_product(self.dir_vectors[0], self.dir_vectors[1])
-        print(math.sin(test))
+        # print(math.sin(test))
         return 0
     
     def calc_all(self):
@@ -66,8 +69,12 @@ class RingSystem:
         self.calc_intersection()
         self.calc_rotation()
 
+    def test(self, value):
+        return value
+
+
     def snapshot(self):
-        self.m_pos_snapshot = self.m_pos
+        self.m_pos_snapshot = self.m_pos[:]
         self.v_normal_snapshot = self.v_normal
-        self.dir_vectors_snapshot = self.dir_vectors
-        self.rotation_snapshot = self.rotation
+        self.dir_vectors_snapshot = self.dir_vectors[:]
+        self.rotation_snapshot = self.rotation[:]
