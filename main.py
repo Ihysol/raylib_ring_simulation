@@ -1,46 +1,12 @@
 import pyray as rl
 import math
-import numpy as np
 
 import serial
 import threading
 import time
 
-def deg2rad(deg):
-    return deg * (math.pi/180)
-
-def find_intersection_4points(a1, a2, b1, b2):
-    # calc direction vectors
-    a_dir = rl.vector3_subtract(a2, a1)
-    b_dir = rl.vector3_subtract(b2, b1)
-    
-    # calc cross product of both direction vectors
-    n = rl.vector3_cross_product(a_dir, b_dir)
-
-    # find points 
-    t1 = rl.vector_3dot_product(rl.vector3_cross_product(b_dir, n), rl.vector3_subtract(b1, a1)) /  rl.vector_3dot_product(n, n)
-    t2 = rl.vector_3dot_product(rl.vector3_cross_product(a_dir, n), rl.vector3_subtract(b1, a1)) / rl.vector_3dot_product(n, n)
-
-    # calc intersections
-    points = []
-    points.append(rl.vector3_add(a1, rl.vector3_scale(a_dir, t1)))
-    points.append(rl.vector3_add(b1, rl.vector3_scale(b_dir, t1)))
-    return points
-
-def find_intersection(points):
-    return find_intersection_4points(points[0], points[2], points[1], points[3])
-
-def calc_normal_vector_4points(a1, a2, b1, b2):
-    # direction vectors
-    a_dir = rl.vector3_subtract(a2, a1)
-    b_dir = rl.vector3_subtract(b2, b1)
-
-    # calc normal vector
-    normal_vector = rl.vector3_scale(rl.vector3_cross_product(b_dir, a_dir), -1)
-    return normal_vector
-
-def calc_normal_vector(points):
-    return calc_normal_vector_4points(points[0], points[2], points[1], points[3])
+from ringsystem import RingSystem
+from utils import *
 
 # init window
 WIDTH, HEIGHT = 800, 600
@@ -49,31 +15,18 @@ rl.set_target_fps(60)
 
 # camera
 camera = rl.Camera3D()
-camera.position = rl.Vector3(0, 20, 100)
+camera.position = rl.Vector3(0, 50, 100)
 camera.target = rl.Vector3(0, 0, 0)
 camera.up = rl.Vector3(0, 1, 0)
 camera.fovy = 45.0
 
-# geometry
-offset_s_m = 3
-s_circle_radius = 42.5
-m_circle_radius = s_circle_radius + 2*offset_s_m
-
-# sensor positions
-s_positions = []
-m_positions = []
-for i in range(4):
-    angle = i*deg2rad(-90)
-    x = math.cos(angle)
-    z = math.sin(angle)
-    s_positions.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), s_circle_radius))
-    m_positions.append(rl.vector3_scale(rl.vector3_normalize(rl.Vector3(x, 0, z)), m_circle_radius))
-
-
+ring = RingSystem()
 
 delta_scale = 0.5
 
 def processUserInputs():
+    _q = [rl.quaternion_identity() for _ in range(3)]
+
     if rl.is_key_down(rl.KeyboardKey.KEY_W):
         forward = rl.vector3_subtract(camera.target, camera.position)
         camera.position = rl.vector3_add(camera.position, rl.vector3_scale(rl.vector3_normalize(forward), camera_scale))
@@ -86,68 +39,64 @@ def processUserInputs():
         if rl.is_key_down(rl.KeyboardKey.KEY_D):
             right = rl.vector3_scale(right, -1)
         camera.position = rl.vector3_add(camera.position, rl.vector3_scale(right, camera_scale))     
-        
-
-    if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) or rl.is_key_down(rl.KeyboardKey.KEY_RIGHT):
-        delta = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) else -delta_scale
-        rotation_matrix = rl.matrix_rotate_z(deg2rad(delta))
-        for idx, pos in enumerate(m_positions):
-            m_positions[idx] = rl.vector3_transform(pos, rotation_matrix)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_UP) or rl.is_key_down(rl.KeyboardKey.KEY_DOWN):
-        delta = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_DOWN) else -delta_scale
-        rotation_matrix = rl.matrix_rotate_x(deg2rad(delta))
-
-        for idx, pos in enumerate(m_positions):
-            m_positions[idx] = rl.vector3_transform(pos, rotation_matrix)
+        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_DOWN) else -delta_scale
+        _q[0] = rl.Vector4(math.sin(deg2rad(q_angle/2))*1, 0, 0, math.cos(deg2rad(q_angle/2)))
 
     if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_UP) or rl.is_key_down(rl.KeyboardKey.KEY_PAGE_DOWN):
-        delta = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_DOWN) else -delta_scale
-        rotation_matrix = rl.matrix_rotate_y(deg2rad(delta))
+        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_UP) else -delta_scale       
+        _q[1] = rl.Vector4(0, math.sin(deg2rad(q_angle/2))*1, 0, math.cos(deg2rad(q_angle/2)))
+        
+    if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) or rl.is_key_down(rl.KeyboardKey.KEY_RIGHT):
+        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) else -delta_scale
+        _q[2] = rl.Vector4(0, 0, math.sin(deg2rad(q_angle/2))*1, math.cos(deg2rad(q_angle/2)))
 
-        for idx, pos in enumerate(m_positions):
-            m_positions[idx] = rl.vector3_transform(pos, rotation_matrix)
-
-        for i in range(4):
-            m_positions[i] = rl.vector3_transform(m_positions[i], rotation_matrix)
-
+    q = rl.quaternion_multiply(rl.quaternion_multiply(_q[0], _q[1]), _q[2])
+    for idx,pos in enumerate(ring.m_pos):
+        ring.m_pos[idx] = rotateVectorByQuaternion(pos, q)
+       
     if rl.is_key_down(rl.KeyboardKey.KEY_ENTER):
-        for idx, pos in enumerate(m_positions):
-            angle = idx*deg2rad(90)
-            m_positions[idx] = rl.vector3_scale(rl.vector3_normalize(rl.Vector3(math.cos(angle), 0, math.sin(angle))), m_circle_radius)
+        for idx, pos in enumerate(ring.m_pos):
+            angle = idx*deg2rad(-90)
+            ring.m_pos[idx] = rl.vector3_scale(rl.vector3_normalize(rl.Vector3(math.cos(angle), 0, math.sin(angle))), ring.m_circle_radius)
 
-    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt", 10, 10, 10, rl.BEIGE)
+    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt, PG_DOWN/PG_UP: rotate", 10, 10, 10, rl.BEIGE)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_J) or rl.is_key_down(rl.KeyboardKey.KEY_L):
         delta_x = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_L) else -delta_scale
         translation_matrix = rl.matrix_translate(delta_x, 0, 0)
-        for idx, pos in enumerate(m_positions):
-            m_positions[idx] = rl.vector3_transform(pos, translation_matrix)
+        for idx, pos in enumerate(ring.m_pos):
+            ring.m_pos[idx] = rl.vector3_transform(pos, translation_matrix)
     elif rl.is_key_down(rl.KeyboardKey.KEY_I) or rl.is_key_down(rl.KeyboardKey.KEY_K):
         delta_z = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_K) else -delta_scale
         translation_matrix = rl.matrix_translate(0, 0, delta_z)
-        for idx, pos in enumerate(m_positions):
-            m_positions[idx] = rl.vector3_transform(pos, translation_matrix)
+        for idx, pos in enumerate(ring.m_pos):
+            ring.m_pos[idx] = rl.vector3_transform(pos, translation_matrix)
 
+def draw_orientation_marker():
+    orientation_marker_pos = [ring.m_pos[3], rl.vector3_subtract(ring.s_pos[3], rl.Vector3(3,0,0)), rl.vector3_add(ring.s_pos[3], rl.Vector3(3,0,0))]
+    rl.draw_triangle_3d(orientation_marker_pos[2], orientation_marker_pos[1], orientation_marker_pos[1], rl.WHITE)
 
-orientation_marker_pos = []
-orientation_marker_pos.append(m_positions[3])
-orientation_marker_pos.append(rl.vector3_subtract(s_positions[3], rl.Vector3(3,0,0)))
-orientation_marker_pos.append(rl.vector3_add(s_positions[3], rl.Vector3(3,0,0)))
+def draw_sensor_positions():
+    for pos in ring.s_pos:
+        rl.draw_sphere(pos, 0.75, rl.RED)
 
-# quaternion debug
-# dummy = rl.Vector3(0, 10, 0)
-# rotation_axis = [1, 0, 0]
-# q_angle = 22.5
-# qx = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+def draw_magnet_positions():
+    for pos in ring.m_pos:
+        rl.draw_sphere(pos, 0.75, rl.GREEN)
 
-# rotation_axis = [0, 1, 0]
-# q_angle = 45
-# qy = rl.Vector4(math.sin(deg2rad(q_angle/2))*rotation_axis[0], math.sin(deg2rad(q_angle/2))*rotation_axis[1], math.sin(deg2rad(q_angle/2))*rotation_axis[2], math.cos(deg2rad(q_angle/2)))
+def draw_magnet_vectors():
+    rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
+    rl.draw_line_3d(ring.m_pos[1], ring.m_pos[3], rl.BLUE)
 
-# q_combined = rl.quaternion_multiply(qy, qx)
-# dummy = rl.vector3_rotate_by_quaternion(dummy, q_combined)
+def draw_circles():
+    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
+    rl.draw_circle_3d(rl.Vector3(0,0,0), ring.m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
 
+def draw_geometry():
+    draw_circles()             # draw base circles
+    draw_orientation_marker()   # buggy atm
 
 def getInputs():
     inputs = []
@@ -160,28 +109,14 @@ def getInputs():
                 sensor_data = [float(value) for value in sensor_data]
                 print(sensor_data)
 
-                # for idx, pos in enumerate(m_positions):
-                #     m_positions[idx] = rl.vector3_add(s_positions[idx], rl.Vector3(sensor_data[idx], sensor_data[idx+1], sensor_data[idx+2]))
-                #     print(m_positions[idx])
-
-                m_positions[0] = rl.vector3_add(s_positions[0], rl.Vector3(sensor_data[0], sensor_data[2], sensor_data[1])) # swap nothing
-                m_positions[1] = rl.vector3_add(s_positions[1], rl.Vector3(sensor_data[4], sensor_data[5], sensor_data[3])) # swap x and z
-                m_positions[2] = rl.vector3_add(s_positions[2], rl.Vector3(-sensor_data[6], sensor_data[8], -sensor_data[7])) # negate x and z
-                m_positions[3] = rl.vector3_add(s_positions[3], rl.Vector3(-sensor_data[10], sensor_data[11], -sensor_data[9])) # flip and negate x and z
+                ring.m_pos[0] = rl.vector3_add(ring.s_pos[0], rl.Vector3(sensor_data[0], sensor_data[2], sensor_data[1])) # swap nothing
+                ring.m_pos[1] = rl.vector3_add(ring.s_pos[1], rl.Vector3(sensor_data[4], sensor_data[5], sensor_data[3])) # swap x and z
+                ring.m_pos[2] = rl.vector3_add(ring.s_pos[2], rl.Vector3(-sensor_data[6], sensor_data[8], -sensor_data[7])) # negate x and z
+                ring.m_pos[3] = rl.vector3_add(ring.s_pos[3], rl.Vector3(-sensor_data[10], sensor_data[11], -sensor_data[9])) # flip and negate x and z
             except:
                 pass
-            # m_positions[1] = rl.vector3_add(s_positions[1], )
-          
-            # for idx, pos in enumerate(m_positions):
-            #     m_positions[idx] = rl.vector3_add(pos, rl.Vector3(sensor_data[idx+0], sensor_data[idx+1], sensor_data[idx+2]))
-            #     print(f"m{idx}({m_positions[idx].x}, {m_positions[idx].y}, {m_positions[idx].z})")
-            #     pass
 
-        # time.sleep(0.1)
-
-        
-
-ser = serial.Serial('COM7', 115200)
+# ser = serial.Serial('COM7', 115200)
 thread = threading.Thread(target=getInputs, daemon=True)
 thread.start()
 
@@ -191,11 +126,8 @@ while not rl.window_should_close():
     """
     # make it interactive (demo simulation)
     processUserInputs()
-    # getInputs()
 
-    # find intersection point
-    points = find_intersection(m_positions)
-
+    ring.calc_all() # calc all values inside the ring system
 
     """
         ONLY DRAW CALLS FROM HERE ON
@@ -203,33 +135,16 @@ while not rl.window_should_close():
     rl.begin_drawing()
     rl.clear_background(rl.BLACK)
     rl.begin_mode_3d(camera)
-
-
-    # rl.draw_line_3d(rl.Vector3(0,0,0), dummy, rl.PURPLE)
-
-    
-    # draw geometry
-    rl.draw_circle_3d(rl.Vector3(0,0,0), s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-    rl.draw_circle_3d(rl.Vector3(0,0,0), m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-    rl.draw_triangle_3d(orientation_marker_pos[0], orientation_marker_pos[1], orientation_marker_pos[2], rl.WHITE)
-
-    # draw sensor positions
-    for pos in s_positions:
-        rl.draw_sphere(pos, 0.75, rl.RED)
-
-    # rl.draw_circle_3d(m_positions[2], 3, rl.Vector3(0,0,0), 0, rl.PURPLE)
-
-    # draw magnet positions and vectors
-    for pos in m_positions:
-        rl.draw_sphere(pos, 0.75, rl.GREEN)
-    rl.draw_line_3d(m_positions[0], m_positions[2], rl.BLUE)
-    rl.draw_line_3d(m_positions[1], m_positions[3], rl.BLUE)
+   
+    draw_geometry()             # draw base circles and orientation marker
+    draw_sensor_positions()     # draw fixed sensor positions
+    draw_magnet_positions()     # draw magnet positions
+    draw_magnet_vectors()       # draw magnet vectors
 
     # draw intersection point
-    rl.draw_sphere(points[0], 0.5, rl.RED)
-    
-    # draw normal vector
-    rl.draw_line_3d(points[0], calc_normal_vector(m_positions), rl.RED)
+    rl.draw_sphere(ring.intersections[0], 0.5, rl.RED)
+    # draw normal vector from intersection
+    rl.draw_line_3d(ring.intersections[0], ring.v_normal, rl.RED)
 
     rl.end_mode_3d()
     rl.end_drawing()
