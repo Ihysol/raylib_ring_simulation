@@ -23,6 +23,7 @@ camera.fovy = 45.0
 ring = RingSystem()
 
 delta_scale = 0.5
+rotation_scale = 1E-2
 
 def processUserInputs():
     _q = [rl.quaternion_identity() for _ in range(3)]
@@ -41,16 +42,16 @@ def processUserInputs():
         camera.position = rl.vector3_add(camera.position, rl.vector3_scale(right, camera_scale))     
 
     if rl.is_key_down(rl.KeyboardKey.KEY_UP) or rl.is_key_down(rl.KeyboardKey.KEY_DOWN):
-        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_DOWN) else -delta_scale
-        _q[0] = rl.Vector4(math.sin(deg2rad(q_angle/2))*1, 0, 0, math.cos(deg2rad(q_angle/2)))
+        q_angle = rotation_scale if rl.is_key_down(rl.KeyboardKey.KEY_DOWN) else -rotation_scale
+        _q[0] = rl.Vector4(math.sin(q_angle/2)*1, 0, 0, math.cos(q_angle/2))
 
     if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_UP) or rl.is_key_down(rl.KeyboardKey.KEY_PAGE_DOWN):
-        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_UP) else -delta_scale       
-        _q[1] = rl.Vector4(0, math.sin(deg2rad(q_angle/2))*1, 0, math.cos(deg2rad(q_angle/2)))
+        q_angle = rotation_scale if rl.is_key_down(rl.KeyboardKey.KEY_PAGE_UP) else -rotation_scale       
+        _q[1] = rl.Vector4(0, math.sin(q_angle/2)*1, 0, math.cos(q_angle/2))
         
     if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) or rl.is_key_down(rl.KeyboardKey.KEY_RIGHT):
-        q_angle = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) else -delta_scale
-        _q[2] = rl.Vector4(0, 0, math.sin(deg2rad(q_angle/2))*1, math.cos(deg2rad(q_angle/2)))
+        q_angle = rotation_scale if rl.is_key_down(rl.KeyboardKey.KEY_LEFT) else -rotation_scale
+        _q[2] = rl.Vector4(0, 0, math.sin(q_angle/2)*1, math.cos(q_angle/2))
 
     q = rl.quaternion_multiply(rl.quaternion_multiply(_q[0], _q[1]), _q[2])
     for idx,pos in enumerate(ring.m_pos):
@@ -61,7 +62,7 @@ def processUserInputs():
             angle = idx*deg2rad(-90)
             ring.m_pos[idx] = rl.vector3_scale(rl.vector3_normalize(rl.Vector3(math.cos(angle), 0, math.sin(angle))), ring.m_circle_radius)
 
-    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt, PG_DOWN/PG_UP: rotate, TAB: snapshot", 10, 10, 10, rl.BEIGE)
+    rl.draw_text("WASD:cam control, Arrow Keys:Tilt, Enter: reset tilt, PG_DOWN/PG_UP: rotate, TAB: snapshot, LCTRL:calcAngle", 10, 10, 12, rl.BEIGE)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_J) or rl.is_key_down(rl.KeyboardKey.KEY_L):
         delta_x = delta_scale if rl.is_key_down(rl.KeyboardKey.KEY_L) else -delta_scale
@@ -75,8 +76,13 @@ def processUserInputs():
             ring.m_pos[idx] = rl.vector3_transform(pos, translation_matrix)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_TAB):
-        print(f"{ring.v_normal_snapshot.x}, {ring.v_normal_snapshot.y}, {ring.v_normal_snapshot.z}")
+        # print(f"{ring.v_normal_snapshot.x}, {ring.v_normal_snapshot.y}, {ring.v_normal_snapshot.z}")
+        # print(f"{ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])}")
         ring.snapshot()
+
+    if rl.is_key_down(rl.KeyboardKey.KEY_LEFT_CONTROL):
+        ring.calc_all()
+        ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
 
 def draw_orientation_marker():
     orientation_marker_pos = [ring.m_pos[3], rl.vector3_subtract(ring.s_pos[3], rl.Vector3(3,0,0)), rl.vector3_add(ring.s_pos[3], rl.Vector3(3,0,0))]
@@ -141,6 +147,13 @@ while not rl.window_should_close():
     # draw magnet positions
     for pos in ring.m_pos:
         rl.draw_sphere(pos, 0.75, rl.GREEN)     
+
+    rl.draw_sphere(rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors[0]), 5), 0.5, rl.YELLOW)
+    rl.draw_line_3d(rl.Vector3(0,0,0), rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors[0]), 5), rl.YELLOW)
+    rl.draw_sphere(rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors_snapshot[0]), 5), 0.5, rl.ORANGE)
+    rl.draw_line_3d(rl.Vector3(0,0,0), rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors_snapshot[0]), 5), rl.ORANGE)
+
+
     # draw magnet vectors
     rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
     rl.draw_line_3d(ring.m_pos[1], ring.m_pos[3], rl.BLUE) 
@@ -151,12 +164,15 @@ while not rl.window_should_close():
     rl.draw_line_3d(ring.intersections[0], ring.v_normal, rl.RED)
 
     # draw snapshot vector data
-    draw_snapshot_data() 
+    draw_snapshot_data() # use TAB to snapshot -> see processUserInputs()
 
     rl.end_mode_3d()
     rl.end_drawing()
 
     camera_scale = 1
+
+    # ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
+
 
 # thread.join()
 
