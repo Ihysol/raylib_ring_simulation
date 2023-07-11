@@ -64,16 +64,24 @@ class RingSystem:
         v1 = rl.vector3_normalize(vector1)
         v2 = rl.vector3_normalize(vector2)
 
-        dotProduct = rl.vector_3dot_product(v1, v2)
-        print(f"({v1.x},{v1.y},{v1.z}) * ({v2.x},{v2.y},{v2.z}) = {dotProduct}")
+        # rotation around y - that is rotation of the ring
+        angle_z = math.acos(v1.y/rl.vector3_length(v1)) - math.acos(v2.y/rl.vector3_length(v2))
 
-        x_angle = math.acos(dotProduct/(rl.vector3_length(v1)*rl.vector3_length(v2)))
+        angle_x = 0
+        angle_y = 0
 
-        print(rad2deg(x_angle)) # goes only from 0-180°, is non-negative (->bug)
+        # scuffed version idea: check the difference of both vector components v1.y:v2.y, v1.x:v2.x, v1.z:v2.z ...
+        # any difference between the two will tell you the difference in that axis
 
-        # TODO: get accurate readings against all 3 coordinate axis
-        # TODO: then get the angles between the 2nd vector also split in all 3 axis
-    
+        # better version: use dot product between projected versions of the vector
+        # 1. project vectors onto the same plane to eliminate one dimension e.g. onto the xz-plane where the ring currently lies
+        # 2. use the dot product of the two projected vector2's
+        # 3. ???
+        # 4. profit
+        # 5. repeat for other axis
+
+        print(f"tiltLR:{rad2deg(angle_y)}\ntiltFB:{rad2deg(0)}\nrota_Z:{rad2deg(angle_z)}")
+
     def calc_all(self):
         self.dir_vectors = self.calc_dir_vectors(positions=self.m_pos)
         self.v_normal = self.calc_normal_vector(dir_vectors=self.dir_vectors)

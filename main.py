@@ -10,7 +10,7 @@ from utils import *
 
 # init window
 WIDTH, HEIGHT = 800, 600
-rl.init_window(WIDTH, HEIGHT, "green wie ein philipp - 3d vector demo for a commercial product that nobody needs, but yet it is still in worked on.")
+rl.init_window(WIDTH, HEIGHT, "3d vector demo for a wannabe-commercial product that nobody needs, but yet it is still in worked on.")
 rl.set_target_fps(60)
 
 # camera
@@ -170,6 +170,7 @@ while not rl.window_should_close():
     rl.end_drawing()
 
     camera_scale = 1
+
 
     # ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
 
