@@ -137,6 +137,15 @@ while not rl.window_should_close():
     rl.draw_circle_3d(rl.Vector3(0,0,0), ring.s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
     rl.draw_circle_3d(rl.Vector3(0,0,0), ring.m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
 
+    vectors = ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
+
+    rl.draw_circle_3d(rl.Vector3(0, vectors[0].y, vectors[0].x), 0.2, rl.vector3_zero(), 0, rl.YELLOW)
+    rl.draw_circle_3d(rl.Vector3(0, vectors[1].y, vectors[1].x), 0.2, rl.vector3_zero(), 0, rl.ORANGE)
+    rl.draw_line_3d(rl.Vector3(0,0,0), rl.Vector3(0, vectors[0].y, vectors[0].x), rl.YELLOW)
+    rl.draw_line_3d(rl.Vector3(0,0,0), rl.Vector3(0, vectors[1].y, vectors[1].x), rl.ORANGE)
+    
+
+
     # orientation marker
     draw_orientation_marker()   # buggy atm 
 
@@ -147,12 +156,6 @@ while not rl.window_should_close():
     # draw magnet positions
     for pos in ring.m_pos:
         rl.draw_sphere(pos, 0.75, rl.GREEN)     
-
-    rl.draw_sphere(rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors[0]), 5), 0.5, rl.YELLOW)
-    rl.draw_line_3d(rl.Vector3(0,0,0), rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors[0]), 5), rl.YELLOW)
-    rl.draw_sphere(rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors_snapshot[0]), 5), 0.5, rl.ORANGE)
-    rl.draw_line_3d(rl.Vector3(0,0,0), rl.vector3_scale(rl.vector3_normalize(ring.dir_vectors_snapshot[0]), 5), rl.ORANGE)
-
 
     # draw magnet vectors
     rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
@@ -165,6 +168,8 @@ while not rl.window_should_close():
 
     # draw snapshot vector data
     draw_snapshot_data() # use TAB to snapshot -> see processUserInputs()
+
+    rl.draw_circle_3d(ring.m_pos[0], 5, rl.Vector3(0,0,0), 0, rl.BLUE)
 
     rl.end_mode_3d()
     rl.end_drawing()

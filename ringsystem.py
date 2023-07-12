@@ -61,11 +61,14 @@ class RingSystem:
         return intersections
 
     def calc_rotation(self, vector1, vector2):
-        v1 = rl.vector3_normalize(vector1)
-        v2 = rl.vector3_normalize(vector2)
+        # v1 = rl.vector3_normalize(vector1)
+        # v2 = rl.vector3_normalize(vector2)
+
+        v1 = vector1
+        v2 = vector2
 
         # rotation around y - that is rotation of the ring
-        angle_z = math.acos(v1.y/rl.vector3_length(v1)) - math.acos(v2.y/rl.vector3_length(v2))
+        angle_z = math.acos(v1.z/rl.vector3_length(v1)) - math.acos(v2.z/rl.vector3_length(v2))
 
         angle_x = 0
         angle_y = 0
@@ -80,7 +83,14 @@ class RingSystem:
         # 4. profit
         # 5. repeat for other axis
 
-        print(f"tiltLR:{rad2deg(angle_y)}\ntiltFB:{rad2deg(0)}\nrota_Z:{rad2deg(angle_z)}")
+        # project to zy plane
+        v1_zy = rl.Vector2(v1.z, v1.y)
+        v2_zy = rl.Vector2(v2.z, v2.y)
+
+        vectors = []
+        vectors.append(rl.vector2_scale(v1_zy, -1))
+        vectors.append(rl.vector2_scale(v2_zy, -1))
+        return vectors
 
     def calc_all(self):
         self.dir_vectors = self.calc_dir_vectors(positions=self.m_pos)
