@@ -82,7 +82,7 @@ def processUserInputs():
 
     if rl.is_key_down(rl.KeyboardKey.KEY_LEFT_CONTROL):
         ring.calc_all()
-        ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
+        ring.calc_rotation_from_quaternion_between_vectors(ring.dir_vectors[0], rl.Vector3(0,1,0))
 
 def draw_orientation_marker():
     orientation_marker_pos = [ring.m_pos[3], rl.vector3_subtract(ring.s_pos[3], rl.Vector3(3,0,0)), rl.vector3_add(ring.s_pos[3], rl.Vector3(3,0,0))]
@@ -136,33 +136,24 @@ while not rl.window_should_close():
     # draw base circles
     rl.draw_circle_3d(rl.Vector3(0,0,0), ring.s_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
     rl.draw_circle_3d(rl.Vector3(0,0,0), ring.m_circle_radius, rl.Vector3(1,0,0), 90, rl.WHITE)
-
-    vectors = ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
-
-    rl.draw_circle_3d(rl.Vector3(0, vectors[0].y, vectors[0].x), 0.2, rl.vector3_zero(), 0, rl.YELLOW)
-    rl.draw_circle_3d(rl.Vector3(0, vectors[1].y, vectors[1].x), 0.2, rl.vector3_zero(), 0, rl.ORANGE)
-    rl.draw_line_3d(rl.Vector3(0,0,0), rl.Vector3(0, vectors[0].y, vectors[0].x), rl.YELLOW)
-    rl.draw_line_3d(rl.Vector3(0,0,0), rl.Vector3(0, vectors[1].y, vectors[1].x), rl.ORANGE)
     
-
-
     # orientation marker
     draw_orientation_marker()   # buggy atm 
 
     # draw fixed sensor positions                      
     for pos in ring.s_pos:                  
-        rl.draw_sphere(pos, 0.75, rl.RED)     
+        rl.draw_sphere(pos, 0.5, rl.RED)     
     
     # draw magnet positions
     for pos in ring.m_pos:
-        rl.draw_sphere(pos, 0.75, rl.GREEN)     
+        rl.draw_sphere(pos, 0.5, rl.GREEN)     
 
     # draw magnet vectors
     rl.draw_line_3d(ring.m_pos[0], ring.m_pos[2], rl.BLUE)
     rl.draw_line_3d(ring.m_pos[1], ring.m_pos[3], rl.BLUE) 
 
     # draw intersection point
-    rl.draw_sphere(ring.intersections[0], 0.5, rl.RED)
+    rl.draw_sphere(ring.intersections[0], 0.2, rl.RED)
     # draw normal vector from intersection
     rl.draw_line_3d(ring.intersections[0], ring.v_normal, rl.RED)
 
@@ -175,10 +166,6 @@ while not rl.window_should_close():
     rl.end_drawing()
 
     camera_scale = 1
-
-
-    # ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])
-
 
 # thread.join()
 
