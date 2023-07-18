@@ -1,0 +1,8 @@
+cffi==1.15.1
+future==0.18.3
+inflection==0.5.1
+iso8601==2.0.0
+pycparser==2.21
+PyYAML==6.0.1
+raylib==4.5.0.0
+serial==0.0.97

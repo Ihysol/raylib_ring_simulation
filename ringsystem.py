@@ -23,11 +23,15 @@ class RingSystem:
         self.v_normal_snapshot = rl.vector3_zero()                           # snapshot for normal vector
         self.dir_vectors_snapshot = [rl.vector3_zero() for i in range(2)]   # snapshot for dir vectors
         self.rotation_snapshot = rl.vector3_zero()                          # snapshot for rotation
+        self.intersections_snapshot = [rl.vector3_zero() for i in range(2)]
 
         # detected movement
         self.right_tilt_detected = 0
         self.fwd_tilt_detected = 0
         self.cw_rot_detected = 0
+        self.displacementX = 0
+        self.displacementY = 0
+        self.displacementZ = 0
 
         # calc initial sensor/ magnet positions positions
         for i in range(4):
@@ -96,6 +100,66 @@ class RingSystem:
         # print(f"roll: {rad2deg(roll)}, pitch:{rad2deg(pitch)}, yaw:{rad2deg(yaw)}")
 
         return vector_roll_pitch_yaw
+    
+    def detect_movement(self):
+   
+        # thresholds
+        rotation_threshold = 2.5
+        offset_threshold = 0.2
+
+        # reset all values
+        self.cw_rot_detected = 0
+        self.fwd_tilt_detected = 0
+        self.right_tilt_detected = 0
+        self.displacementX = 0
+        self.displacementY = 0
+        self.displacementZ = 0
+
+        # rotation
+        if not -rotation_threshold<=self.rotation_offsets[0][1]<=rotation_threshold:
+            if self.rotation_offsets[0][1]<=0:
+                self.cw_rot_detected = -1
+            else:
+                self.cw_rot_detected = 1
+
+
+        if not -rotation_threshold<=self.rotation_offsets[1][0]<=rotation_threshold:
+            if self.rotation_offsets[1][0]<=0:
+                self.fwd_tilt_detected = -1
+            else:
+                self.fwd_tilt_detected = 1
+
+
+        if not -rotation_threshold<=self.rotation_offsets[0][2]<=rotation_threshold:
+            if self.rotation_offsets[0][2]<=0:
+                self.right_tilt_detected= -1
+            else:
+                self.right_tilt_detected = 1
+
+ 
+        # offset
+        intersection_offset_vector = rl.vector3_clamp_value(rl.vector3_subtract(self.intersections[0], self.intersections_snapshot[0]), 0.1, 5)
+
+        if not -offset_threshold<=intersection_offset_vector.x<=offset_threshold:
+            if intersection_offset_vector.x < 0:
+                self.displacementX = -1
+            else:
+                self.displacementX = 1
+
+        if not -offset_threshold<=intersection_offset_vector.y<=offset_threshold:
+            if intersection_offset_vector.y < 0:
+                self.displacementY = -1
+            else:
+                self.displacementY = 1
+
+        if not -offset_threshold<=intersection_offset_vector.z<=offset_threshold:
+            if intersection_offset_vector.z < 0:
+                self.displacementZ = -1
+            else:
+                self.displacementZ = 1
+
+        print(f"x:{self.displacementX}, y:{self.displacementY}, z:{self.displacementZ}, cw_rot:{self.cw_rot_detected}, fwd_tilt:{self.fwd_tilt_detected}, right_tilt:{self.right_tilt_detected}")
+
 
 
     def calc_all(self):
@@ -106,35 +170,12 @@ class RingSystem:
         for idx, dir_vector in enumerate(self.dir_vectors):
             self.rotation_offsets[idx] = self.calc_rotation_from_quaternion_between_vectors(dir_vector, self.dir_vectors_snapshot[idx])
 
-        # print(self.rotation_offsets[0])
-        # print(f"rot:[{self.rotation_offsets[0][1]}, {self.rotation_offsets[1][1]}] \nlrtilt:[{self.rotation_offsets[0][2]}] \nfbtilt:[{self.rotation_offsets[1][0]}]")
-
-        if self.rotation_offsets[0][1] >= 5.0:
-            self.cw_rot_detected = 1
-        elif self.rotation_offsets[0][1] <= -5.0:
-            self.cw_rot_detected = -1
-        else: 
-            self.cw_rot_detected = 0
+        self.detect_movement()
 
 
-        if self.rotation_offsets[1][0] >= 5.0:
-            self.fwd_tilt_detected = 1
-        elif self.rotation_offsets[1][0] <= -5.0:
-            self.fwd_tilt_detected = -1
-        else:
-            self.fwd_tilt_detected = 0
-
-        if self.rotation_offsets[0][2] >= 5.0:
-            self.right_tilt_detected = 1
-        elif self.rotation_offsets[0][2] <= -5.0:
-            self.right_tilt_detected = -1
-        else:
-            self.right_tilt_detected = 0
-
-        print(f"cw_rot:{self.cw_rot_detected}, fwd_tilt:{self.fwd_tilt_detected}, right_tilt:{self.right_tilt_detected}")
-        
     def snapshot(self):
         self.m_pos_snapshot = self.m_pos[:]
         self.v_normal_snapshot = self.v_normal
         self.dir_vectors_snapshot = self.dir_vectors[:]
         self.rotation_snapshot = self.rotation[:]
+        self.intersections_snapshot = self.intersections[:]

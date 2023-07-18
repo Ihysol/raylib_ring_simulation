@@ -10,7 +10,7 @@ from utils import *
 
 # init window
 WIDTH, HEIGHT = 800, 600
-rl.init_window(WIDTH, HEIGHT, "3d vector demo for a wannabe-commercial product that nobody needs, but yet it is still in worked on.")
+rl.init_window(WIDTH, HEIGHT, "3d ring vector demo")
 rl.set_target_fps(60)
 
 # camera
@@ -19,6 +19,7 @@ camera.position = rl.Vector3(0, 50, 100)
 camera.target = rl.Vector3(0, 0, 0)
 camera.up = rl.Vector3(0, 1, 0)
 camera.fovy = 45.0
+camera_scale = 1
 
 ring = RingSystem()
 
@@ -55,7 +56,7 @@ def processUserInputs():
 
     q = rl.quaternion_multiply(rl.quaternion_multiply(_q[0], _q[1]), _q[2])
     for idx,pos in enumerate(ring.m_pos):
-        ring.m_pos[idx] = rotateVectorByQuaternion(pos, q)
+        ring.m_pos[idx] = vector3_rotate_by_quaternion(pos, q)
        
     if rl.is_key_down(rl.KeyboardKey.KEY_ENTER):
         for idx, pos in enumerate(ring.m_pos):
@@ -76,8 +77,6 @@ def processUserInputs():
             ring.m_pos[idx] = rl.vector3_transform(pos, translation_matrix)
 
     if rl.is_key_down(rl.KeyboardKey.KEY_TAB):
-        # print(f"{ring.v_normal_snapshot.x}, {ring.v_normal_snapshot.y}, {ring.v_normal_snapshot.z}")
-        # print(f"{ring.calc_rotation(ring.dir_vectors[0], ring.dir_vectors_snapshot[0])}")
         ring.snapshot()
 
     if rl.is_key_down(rl.KeyboardKey.KEY_LEFT_CONTROL):
@@ -165,7 +164,7 @@ while not rl.window_should_close():
     rl.end_mode_3d()
     rl.end_drawing()
 
-    camera_scale = 1
+    # camera_scale = 1
 
 # thread.join()
 
