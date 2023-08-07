@@ -70,13 +70,6 @@ class RingSystem:
         intersections[1] = rl.vector3_add(positions[1], rl.vector3_scale(dir_vectors[1], t1))
         return intersections
 
-    def calc_rotation(self, vector, origin_axis_vector):
-
-        target_axis_vector = rl.vector3_cross_product(rl.Vector3(0, 1, 0), origin_axis_vector) # get target component which is perpendicular to rotation axis y and the target axis
-        v1 = rl.vector3_length(rl.vector3_multiply(rl.vector3_normalize(vector), target_axis_vector)) # select only target element
-        print(rad2deg(math.asin(v1)))
-
-
     def calc_rotation_from_quaternion_between_vectors(self, vector1, vector2):
         # Normalize vectors
         v1 = rl.vector3_normalize(vector1)
@@ -104,7 +97,7 @@ class RingSystem:
     def detect_movement(self):
    
         # thresholds
-        rotation_threshold = 2.5
+        rotation_threshold = 3
         offset_threshold = 0.2
 
         # reset all values
@@ -116,20 +109,21 @@ class RingSystem:
         self.displacementZ = 0
 
         # rotation
-        if not -rotation_threshold<=self.rotation_offsets[0][1]<=rotation_threshold:
+        # yaw: [0, 1]
+        if not -rotation_threshold<=min_around_zero(self.rotation_offsets[0][1], self.rotation_offsets[1][1])<=rotation_threshold:
             if self.rotation_offsets[0][1]<=0:
                 self.cw_rot_detected = -1
             else:
                 self.cw_rot_detected = 1
 
-
+        # roll: [1, 0]
         if not -rotation_threshold<=self.rotation_offsets[1][0]<=rotation_threshold:
             if self.rotation_offsets[1][0]<=0:
                 self.fwd_tilt_detected = -1
             else:
                 self.fwd_tilt_detected = 1
 
-
+        # pitch: [0, 2]
         if not -rotation_threshold<=self.rotation_offsets[0][2]<=rotation_threshold:
             if self.rotation_offsets[0][2]<=0:
                 self.right_tilt_detected= -1
@@ -158,6 +152,10 @@ class RingSystem:
             else:
                 self.displacementZ = 1
 
+
+        # print(f"yaw1: {self.rotation_offsets[0][1]}, yaw2: {self.rotation_offsets[1][1]} min: {min_around_zero(self.rotation_offsets[0][1], self.rotation_offsets[1][1])}")
+        # print(f"roll: {self.rotation_offsets[1][0]}, pitch:{self.rotation_offsets[1][1]}, yaw:{min((self.rotation_offsets[1][1]), abs(self.rotation_offsets[0][1]))}")
+        # print(f"roll: {self.rotation_offsets[1][0]}, pitch:{self.rotation_offsets[0][2]}, yaw:{self.rotation_offsets[0][1]}")
         print(f"x:{self.displacementX}, y:{self.displacementY}, z:{self.displacementZ}, cw_rot:{self.cw_rot_detected}, fwd_tilt:{self.fwd_tilt_detected}, right_tilt:{self.right_tilt_detected}")
 
 
@@ -169,6 +167,7 @@ class RingSystem:
 
         for idx, dir_vector in enumerate(self.dir_vectors):
             self.rotation_offsets[idx] = self.calc_rotation_from_quaternion_between_vectors(dir_vector, self.dir_vectors_snapshot[idx])
+            # print(self.rotation_offsets[idx])
 
         self.detect_movement()
 

@@ -44,3 +44,9 @@ def print_vector3(v):
 def vector3_rotate_by_quaternion(vector3, quaternion):
     t = rl.vector3_scale(rl.vector3_cross_product(rl.Vector3(quaternion.x, quaternion.y, quaternion.z), vector3), 2)
     return rl.vector3_add(rl.vector3_add(vector3, rl.vector3_scale(t, quaternion.w)), rl.vector3_cross_product(rl.Vector3(quaternion.x, quaternion.y, quaternion.z), t))
+
+def min_around_zero(a, b):
+    if (abs(a) < abs(b)):
+        return a
+    else:
+        return b

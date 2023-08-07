@@ -164,10 +164,6 @@ while not rl.window_should_close():
     rl.end_mode_3d()
     rl.end_drawing()
 
-    # camera_scale = 1
-
-# thread.join()
-
 rl.close_window()
 
 
